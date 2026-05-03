@@ -1,12 +1,8 @@
-/*  main.cpp: LookAway entry point
- *  Uses WinMain so no console window appears when the .exe is launched.
- *  The CMakeLists sets WIN32 subsystem so the linker agrees.
- */
-#define WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN // CMakeLists sets WIN32 subsystem so the linker agrees
 #include <windows.h>
 #include "App.h"
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) // Uses WinMain so no console window appears when the .exe is launched
 {
     App app;
 

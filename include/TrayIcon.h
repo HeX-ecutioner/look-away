@@ -21,8 +21,8 @@ public:
     bool init(HINSTANCE hInst);
     void remove();
     void setLocked(bool locked) { m_locked = locked; }
-    void updateTooltip(const char* text);
-    void showNotification(const char* title, const char* message);
+    void updateTooltip(const char *text);
+    void showNotification(const char *title, const char *message);
 
     // Win32 window procedure for the hidden message pump window
     static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -35,5 +35,5 @@ private:
 
     void showContextMenu();
 
-    static TrayIcon* s_instance; // Singleton pointer so WndProc can reach the instance
+    static TrayIcon *s_instance; // Singleton pointer so WndProc can reach the instance
 };

@@ -4,8 +4,7 @@
 
 namespace UI
 {
-    bool init(GLFWwindow* window);
-    // msg: the string to display. If null, displays nothing.
-    void renderOverlay(float alpha, int remaining, const char* msg);
+    bool init(GLFWwindow *window);
+    void renderOverlay(float alpha, int remaining, const char *msg);
     void shutdown();
 }

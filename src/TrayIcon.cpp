@@ -1,6 +1,5 @@
 #include "TrayIcon.h"
 #include "resources.h"
-#include <shellapi.h>
 
 TrayIcon* TrayIcon::s_instance = nullptr;
 
@@ -9,8 +8,7 @@ bool TrayIcon::init(HINSTANCE hInstance)
     hInst = hInstance;
     s_instance = this;
 
-    // Register a hidden message-only window class for the tray pump
-    WNDCLASSEXA wc  = {};
+    WNDCLASSEXA wc  = {}; // Register a hidden message-only window class for the tray pump
     wc.cbSize = sizeof(WNDCLASSEXA);
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInst;
@@ -21,16 +19,15 @@ bool TrayIcon::init(HINSTANCE hInstance)
     if (!hwnd)
         return false;
 
-    // Build the NOTIFYICONDATA (ANSI variant)
-    nid = {};
+    nid = {}; // Build the NOTIFYICONDATA (ANSI variant)
     nid.cbSize = sizeof(NOTIFYICONDATAA);
     nid.hWnd = hwnd;
     nid.uID = TRAY_ID;
     nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     nid.uCallbackMessage = WM_TRAYICON;
     nid.hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_ICON1));
-    strncpy(nid.szTip, "LookAway - 20-20-20 Timer", 127);
-    nid.szTip[127] = '\0';
+    strncpy(nid.szTip, "LookAway - 20-20-20 Timer", sizeof(nid.szTip) - 1);
+    nid.szTip[sizeof(nid.szTip) - 1] = '\0';
 
     Shell_NotifyIconA(NIM_ADD, &nid);
     return true;
@@ -45,8 +42,8 @@ void TrayIcon::remove()
  
 void TrayIcon::updateTooltip(const char* text)
 {
-    strncpy(nid.szTip, text, 127);
-    nid.szTip[127] = '\0';
+    strncpy(nid.szTip, text, sizeof(nid.szTip) - 1);
+    nid.szTip[sizeof(nid.szTip) - 1] = '\0';
     nid.uFlags = NIF_TIP;
     Shell_NotifyIconA(NIM_MODIFY, &nid);
 }
@@ -54,12 +51,12 @@ void TrayIcon::updateTooltip(const char* text)
 void TrayIcon::showNotification(const char* title, const char* message)
 {
     nid.uFlags = NIF_INFO;
-    strncpy(nid.szInfoTitle, title, 63);
-    nid.szInfoTitle[63] = '\0';
-    strncpy(nid.szInfo, message, 255);
-    nid.szInfo[255] = '\0';
+    strncpy(nid.szInfoTitle, title, sizeof(nid.szInfoTitle) - 1);
+    nid.szInfoTitle[sizeof(nid.szInfoTitle) - 1] = '\0';
+    strncpy(nid.szInfo, message, sizeof(nid.szInfo) - 1);
+    nid.szInfo[sizeof(nid.szInfo) - 1] = '\0';
     nid.dwInfoFlags = NIIF_INFO; // Standard info icon
-    nid.uTimeout = 5000;         // 5 seconds (deprecated in modern Windows but kept for compatibility)
+    nid.uTimeout = 5000; // 5 seconds (deprecated in Windows 11but kept for compatibility)
     Shell_NotifyIconA(NIM_MODIFY, &nid);
 }
 
