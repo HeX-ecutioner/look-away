@@ -57,8 +57,7 @@ namespace UI
         ImGuiIO& io = ImGui::GetIO();
         ImVec2 disp = io.DisplaySize;
 
-        // Fullscreen window
-        ImGui::SetNextWindowPos({0, 0});
+        ImGui::SetNextWindowPos({0, 0}); // Fullscreen window
         ImGui::SetNextWindowSize(disp);
         ImGui::SetNextWindowBgAlpha(0.f);
 
@@ -68,15 +67,9 @@ namespace UI
             ImGuiWindowFlags_NoBringToFrontOnFocus);
 
         ImDrawList* dl = ImGui::GetWindowDrawList();
-        
-        // Background
-        dl->AddRectFilled({0, 0}, disp, IM_COL32(0, 0, 0, (int)(alpha * 255)));
+        float cx = disp.x * 0.5f, cy = disp.y * 0.5f;
 
-        float cx = disp.x * 0.5f;
-        float cy = disp.y * 0.5f;
-
-        // Digits
-        char timeBuf[16];
+        char timeBuf[16]; // Digits
         snprintf(timeBuf, sizeof(timeBuf), "%d", remaining);
         
         ImGui::PushFont(fontHuge);
@@ -85,7 +78,6 @@ namespace UI
         dl->AddText(fontHuge, 140.f, digitPos, IM_COL32(255, 255, 255, (int)(alpha * 255)), timeBuf);
         ImGui::PopFont();
 
-        // Message
         if (msg)
         {
             ImGui::PushFont(fontTitle);
@@ -96,7 +88,6 @@ namespace UI
         }
 
         ImGui::End();
-
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
