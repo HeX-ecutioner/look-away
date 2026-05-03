@@ -2,6 +2,7 @@
 
 #include "App.h"
 #include "UI.h"
+#include "resources.h"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -85,13 +86,23 @@ bool App::init(HINSTANCE hInst)
         int mx, my;
         glfwGetMonitorPos(monitors[i], &mx, &my);
 
-        GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "Look Away! Overlay", nullptr, overlayWindows.empty() ? nullptr : overlayWindows[0]);
+        GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "Look Away!", nullptr, overlayWindows.empty() ? nullptr : overlayWindows[0]);
         if (!window) continue;
 
         glfwSetWindowPos(window, mx, my);
         overlayWindows.push_back(window);
 
         HWND hwnd = glfwGetWin32Window(window);
+        
+        // Hide from taskbar
+        DWORD exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+        SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_TOOLWINDOW);
+
+        // Set Icon
+        HICON hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_ICON1));
+        SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+        SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+
         SetWindowPos(hwnd, HWND_TOPMOST, mx, my, mode->width, mode->height, SWP_NOACTIVATE);
     }
 
