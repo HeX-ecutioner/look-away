@@ -1,4 +1,4 @@
-![Look Away!](assets/app.ico)
+<img src="assets/icon.png?raw=true" width="400" style="display: block; margin: auto;"/>
 
 # 👀 Look Away!
 
