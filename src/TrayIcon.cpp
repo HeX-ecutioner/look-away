@@ -42,6 +42,14 @@ void TrayIcon::remove()
     if (hwnd)
         DestroyWindow(hwnd);
 }
+ 
+void TrayIcon::updateTooltip(const char* text)
+{
+    strncpy(nid.szTip, text, 127);
+    nid.szTip[127] = '\0';
+    nid.uFlags = NIF_TIP;
+    Shell_NotifyIconA(NIM_MODIFY, &nid);
+}
 
 void TrayIcon::showContextMenu()
 {

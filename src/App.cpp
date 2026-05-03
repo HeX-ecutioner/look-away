@@ -41,12 +41,9 @@ LRESULT CALLBACK App::LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lPar
         bool space   = (pkbhs->vkCode == VK_SPACE);
 
         // Block Alt+Tab, Alt+Esc, Alt+F4, Alt+Space, Windows Keys, and Ctrl+Shift+Esc
-        if ((altDown && (tab || escape || f4 || space)) || 
-            lWin || rWin || 
-            (ctrlDown && shiftDown && escape))
-        {
+        if ((altDown && (tab || escape || f4 || space)) || lWin || rWin || (ctrlDown && shiftDown && escape))
             return 1; 
-        }    }
+    }
     return CallNextHookEx(nullptr, nCode, wParam, lParam);
 }
 
@@ -88,7 +85,7 @@ bool App::init(HINSTANCE hInst)
         int mx, my;
         glfwGetMonitorPos(monitors[i], &mx, &my);
 
-        GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "LookAway Overlay", nullptr, overlayWindows.empty() ? nullptr : overlayWindows[0]);
+        GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "Look Away! Overlay", nullptr, overlayWindows.empty() ? nullptr : overlayWindows[0]);
         if (!window) continue;
 
         glfwSetWindowPos(window, mx, my);
@@ -107,8 +104,7 @@ bool App::init(HINSTANCE hInst)
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
         return false;
 
-    // Initialize UI (Fonts, ImGui) for the primary window
-    if (!UI::init(overlayWindows[0]))
+    if (!UI::init(overlayWindows[0])) // Initialize UI (Fonts, ImGui) for the primary window
         return false;
 
     return true;
@@ -241,10 +237,7 @@ void App::updateOverlay()
         glClear(GL_COLOR_BUFFER_BIT);
 
         if (i == 0)
-        {
-            // Only primary window gets the full UI
-            UI::renderOverlay(overlayAlpha, breakRemaining, currentMessage);
-        }
+            UI::renderOverlay(overlayAlpha, breakRemaining, currentMessage); // Only primary window gets the full UI
         else
         {
             // Others get a solid black shield
@@ -267,6 +260,21 @@ void App::run()
             break;
 
         timer.update();
+
+        // Update Tray Tooltip
+        static double lastTooltipUpdate = 0;
+        double currentTime = glfwGetTime();
+        if (currentTime - lastTooltipUpdate > 1.0)
+        {
+            lastTooltipUpdate = currentTime;
+            int remaining = timer.getRemaining();
+            char buf[128];
+            if (timer.isOnBreak())
+                snprintf(buf, sizeof(buf), "Look Away! - On Break (%ds left)", remaining);
+            else
+                snprintf(buf, sizeof(buf), "Look Away! - Next break in %02d:%02d", remaining / 60, remaining % 60);
+            tray.updateTooltip(buf);
+        }
 
         bool nowOnBreak = timer.isOnBreak();
 
