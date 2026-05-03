@@ -26,6 +26,10 @@ set(IMGUI_SRC
     external/imgui/backends/imgui_impl_opengl3.cpp
 )
 
+# Resources (separate object library to avoid path issues with spaces in RC compiler)
+add_library(LookAwayResources OBJECT assets/resources.rc)
+set_target_properties(LookAwayResources PROPERTIES INCLUDE_DIRECTORIES "")
+
 # WIN32 subsystem = no console window
 add_executable(LookAway WIN32
     src/main.cpp
@@ -33,6 +37,7 @@ add_executable(LookAway WIN32
     src/TimerManager.cpp
     src/TrayIcon.cpp
     src/UI.cpp
+    $<TARGET_OBJECTS:LookAwayResources>
     ${IMGUI_SRC}
 )
 
