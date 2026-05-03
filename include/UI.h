@@ -1,7 +1,11 @@
 #pragma once
-#include "TimerManager.h"
+
+#include <GLFW/glfw3.h>
 
 namespace UI
 {
-    void render(TimerManager &timer);
+    bool init(GLFWwindow* window);
+    // msg: the string to display. If null, displays nothing.
+    void renderOverlay(float alpha, int remaining, const char* msg);
+    void shutdown();
 }
