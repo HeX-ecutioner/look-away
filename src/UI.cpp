@@ -65,7 +65,7 @@ namespace UI
         ImGui::Begin("##overlay", nullptr,
             ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
             ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings |
-            ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoInputs);
+            ImGuiWindowFlags_NoBringToFrontOnFocus);
 
         ImDrawList* dl = ImGui::GetWindowDrawList();
         

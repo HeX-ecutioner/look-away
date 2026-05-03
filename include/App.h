@@ -8,6 +8,7 @@
 
 #include "TimerManager.h"
 #include "TrayIcon.h"
+#include <vector>
 
 enum class OverlayState
 {
@@ -24,11 +25,16 @@ public:
     void run();
     void shutdown();
 
+    static LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
+    static LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam);
+
 private:
-    GLFWwindow* overlayWindow = nullptr;
+    std::vector<GLFWwindow*> overlayWindows;
     TimerManager timer;
     TrayIcon tray;
     bool wantsQuit = false;
+    HHOOK hhkLowLevelKybd = nullptr;
+    HHOOK hhkLowLevelMouse = nullptr;
 
     // Overlay animation
     OverlayState overlayState = OverlayState::Hidden;

@@ -20,11 +20,13 @@ public:
 
     bool init(HINSTANCE hInst);
     void remove();
+    void setLocked(bool locked) { m_locked = locked; }
 
     // Win32 window procedure for the hidden message pump window
     static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 private:
+    bool m_locked = false;
     NOTIFYICONDATAA nid{}; // ANSI variant — works with MinGW without UNICODE
     HWND hwnd = nullptr;
     HINSTANCE hInst = nullptr;

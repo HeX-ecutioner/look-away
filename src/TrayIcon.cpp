@@ -78,7 +78,7 @@ LRESULT CALLBACK TrayIcon::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lP
     {
         UINT event = LOWORD(lParam);
         if (event == WM_RBUTTONUP || event == WM_CONTEXTMENU)
-            if (s_instance)
+            if (s_instance && !s_instance->m_locked)
                 s_instance->showContextMenu();
         return 0;
     }

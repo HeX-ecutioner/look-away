@@ -21,13 +21,50 @@ static float easeInOut(float t)
     return t < 0.5f ? 4.f * t * t * t : 1.f - powf(-2.f * t + 2.f, 3.f) / 2.f;
 }
 
+static App* g_AppInstance = nullptr;
+
+LRESULT CALLBACK App::LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+    if (nCode == HC_ACTION && g_AppInstance && g_AppInstance->timer.isOnBreak())
+    {
+        KBDLLHOOKSTRUCT* pkbhs = (KBDLLHOOKSTRUCT*)lParam;
+        
+        bool altDown = (pkbhs->flags & LLKHF_ALTDOWN);
+        bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000);
+        bool shiftDown = (GetKeyState(VK_SHIFT) & 0x8000);
+        
+        bool tab     = (pkbhs->vkCode == VK_TAB);
+        bool escape  = (pkbhs->vkCode == VK_ESCAPE);
+        bool lWin    = (pkbhs->vkCode == VK_LWIN);
+        bool rWin    = (pkbhs->vkCode == VK_RWIN);
+        bool f4      = (pkbhs->vkCode == VK_F4);
+        bool space   = (pkbhs->vkCode == VK_SPACE);
+
+        // Block Alt+Tab, Alt+Esc, Alt+F4, Alt+Space, Windows Keys, and Ctrl+Shift+Esc
+        if ((altDown && (tab || escape || f4 || space)) || 
+            lWin || rWin || 
+            (ctrlDown && shiftDown && escape))
+        {
+            return 1; 
+        }    }
+    return CallNextHookEx(nullptr, nCode, wParam, lParam);
+}
+
 bool App::init(HINSTANCE hInst)
 {
+    g_AppInstance = this;
+
     // Initialize Tray
     tray.onBreakNow = [this]() { timer.forceBreak(); };
-    tray.onQuit     = [this]() { wantsQuit = true;   };
+    tray.onQuit     = [this]() { 
+        if (!timer.isOnBreak()) 
+            wantsQuit = true; 
+    };
     if (!tray.init(hInst))
         return false;
+
+    // Install keyboard hook
+    hhkLowLevelKybd = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, hInst, 0);
 
     // Initialize GLFW (hidden at startup)
     if (!glfwInit())
@@ -42,24 +79,36 @@ bool App::init(HINSTANCE hInst)
     glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_TRUE);
     glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
 
-    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+    int monitorCount;
+    GLFWmonitor** monitors = glfwGetMonitors(&monitorCount);
 
-    overlayWindow = glfwCreateWindow(mode->width, mode->height, "LookAway Overlay", nullptr, nullptr);
-    if (!overlayWindow)
+    for (int i = 0; i < monitorCount; ++i)
+    {
+        const GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
+        int mx, my;
+        glfwGetMonitorPos(monitors[i], &mx, &my);
+
+        GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "LookAway Overlay", nullptr, overlayWindows.empty() ? nullptr : overlayWindows[0]);
+        if (!window) continue;
+
+        glfwSetWindowPos(window, mx, my);
+        overlayWindows.push_back(window);
+
+        HWND hwnd = glfwGetWin32Window(window);
+        SetWindowPos(hwnd, HWND_TOPMOST, mx, my, mode->width, mode->height, SWP_NOACTIVATE);
+    }
+
+    if (overlayWindows.empty())
         return false;
 
-    HWND hwnd = glfwGetWin32Window(overlayWindow);
-    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, mode->width, mode->height, SWP_NOACTIVATE);
-
-    glfwMakeContextCurrent(overlayWindow);
+    glfwMakeContextCurrent(overlayWindows[0]);
     glfwSwapInterval(1);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
         return false;
 
-    // Initialize UI (Fonts, ImGui)
-    if (!UI::init(overlayWindow))
+    // Initialize UI (Fonts, ImGui) for the primary window
+    if (!UI::init(overlayWindows[0]))
         return false;
 
     return true;
@@ -115,18 +164,23 @@ void App::beginOverlay()
 
     pickNextMessage();
 
-    glfwSetInputMode(overlayWindow, GLFW_CURSOR, GLFW_CURSOR_HIDDEN); // Hide mouse cursor
-
-    glfwShowWindow(overlayWindow);
-    HWND hwnd = glfwGetWin32Window(overlayWindow);
-    SetForegroundWindow(hwnd);
-    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    for (auto* w : overlayWindows)
+    {
+        glfwSetInputMode(w, GLFW_CURSOR, GLFW_CURSOR_HIDDEN); // Hide mouse cursor
+        glfwShowWindow(w);
+        HWND hwnd = glfwGetWin32Window(w);
+        SetForegroundWindow(hwnd);
+        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    }
 }
 
 void App::endOverlay()
 {
-    glfwHideWindow(overlayWindow);
-    glfwSetInputMode(overlayWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL); // Show mouse cursor
+    for (auto* w : overlayWindows)
+    {
+        glfwHideWindow(w);
+        glfwSetInputMode(w, GLFW_CURSOR, GLFW_CURSOR_NORMAL); // Show mouse cursor
+    }
 
     overlayState = OverlayState::Hidden;
     overlayAlpha = 0.f;
@@ -165,9 +219,43 @@ void App::updateOverlay()
     }
 
     if (timer.isOnBreak())
+    {
         breakRemaining = timer.getRemaining();
+        
+        // Force topmost and focus during break
+        for (auto* w : overlayWindows)
+        {
+            HWND hwnd = glfwGetWin32Window(w);
+            if (GetForegroundWindow() != hwnd && w == overlayWindows[0])
+                SetForegroundWindow(hwnd);
+                
+            SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        }
+    }
 
-    UI::renderOverlay(overlayAlpha, breakRemaining, currentMessage);
+    // Render to all windows
+    for (size_t i = 0; i < overlayWindows.size(); ++i)
+    {
+        glfwMakeContextCurrent(overlayWindows[i]);
+        glClearColor(0.f, 0.f, 0.f, 0.f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        if (i == 0)
+        {
+            // Only primary window gets the full UI
+            UI::renderOverlay(overlayAlpha, breakRemaining, currentMessage);
+        }
+        else
+        {
+            // Others get a solid black shield
+            // We can use a simple glClear with alpha or just a quad
+            // Since we use GLFW_TRANSPARENT_FRAMEBUFFER, we need to draw something
+            // But glClear with alpha 1.0 works too
+            glClearColor(0.f, 0.f, 0.f, overlayAlpha);
+            glClear(GL_COLOR_BUFFER_BIT);
+        }
+        glfwSwapBuffers(overlayWindows[i]);
+    }
 }
 
 void App::run()
@@ -183,10 +271,14 @@ void App::run()
         bool nowOnBreak = timer.isOnBreak();
 
         if (nowOnBreak && !wasOnBreak)
+        {
+            tray.setLocked(true);
             beginOverlay();
+        }
 
         else if (!nowOnBreak && wasOnBreak)
         {
+            tray.setLocked(false);
             if (overlayState == OverlayState::Visible || overlayState == OverlayState::FadingIn)
             {
                 overlayState  = OverlayState::FadingOut;
@@ -197,18 +289,22 @@ void App::run()
 
         if (overlayState != OverlayState::Hidden)
         {
-            glfwMakeContextCurrent(overlayWindow);
             glfwPollEvents();
-
-            glClearColor(0.f, 0.f, 0.f, 0.f);
-            glClear(GL_COLOR_BUFFER_BIT);
-
             updateOverlay();
 
-            glfwSwapBuffers(overlayWindow);
-
-            if (glfwWindowShouldClose(overlayWindow))
-                break;
+            for (auto* w : overlayWindows)
+            {
+                if (glfwWindowShouldClose(w))
+                {
+                    if (timer.isOnBreak())
+                        glfwSetWindowShouldClose(w, GLFW_FALSE);
+                    else
+                    {
+                        wantsQuit = true;
+                        break;
+                    }
+                }
+            }
         }
         else
         {
@@ -220,11 +316,14 @@ void App::run()
 
 void App::shutdown()
 {
+    if (hhkLowLevelKybd)
+        UnhookWindowsHookEx(hhkLowLevelKybd);
+
     tray.remove();
     UI::shutdown();
 
-    if (overlayWindow)
-        glfwDestroyWindow(overlayWindow);
+    for (auto* w : overlayWindows)
+        glfwDestroyWindow(w);
 
     glfwTerminate();
 }
