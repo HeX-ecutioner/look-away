@@ -13,6 +13,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <ctime>
+#include <mmsystem.h>
 
 static float clamp01(float v) { return v < 0.f ? 0.f : v > 1.f ? 1.f : v; }
 
@@ -34,12 +35,12 @@ LRESULT CALLBACK App::LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lPar
         bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000);
         bool shiftDown = (GetKeyState(VK_SHIFT) & 0x8000);
         
-        bool tab     = (pkbhs->vkCode == VK_TAB);
-        bool escape  = (pkbhs->vkCode == VK_ESCAPE);
-        bool lWin    = (pkbhs->vkCode == VK_LWIN);
-        bool rWin    = (pkbhs->vkCode == VK_RWIN);
-        bool f4      = (pkbhs->vkCode == VK_F4);
-        bool space   = (pkbhs->vkCode == VK_SPACE);
+        bool tab = (pkbhs->vkCode == VK_TAB);
+        bool escape = (pkbhs->vkCode == VK_ESCAPE);
+        bool lWin = (pkbhs->vkCode == VK_LWIN);
+        bool rWin = (pkbhs->vkCode == VK_RWIN);
+        bool f4 = (pkbhs->vkCode == VK_F4);
+        bool space = (pkbhs->vkCode == VK_SPACE);
 
         // Block Alt+Tab, Alt+Esc, Alt+F4, Alt+Space, Windows Keys, and Ctrl+Shift+Esc
         if ((altDown && (tab || escape || f4 || space)) || lWin || rWin || (ctrlDown && shiftDown && escape))
@@ -52,20 +53,17 @@ bool App::init(HINSTANCE hInst)
 {
     g_AppInstance = this;
 
-    // Initialize Tray
     tray.onBreakNow = [this]() { timer.forceBreak(); };
-    tray.onQuit     = [this]() { 
+    tray.onQuit = [this]() { 
         if (!timer.isOnBreak()) 
             wantsQuit = true; 
     };
     if (!tray.init(hInst))
         return false;
 
-    // Install keyboard hook
-    hhkLowLevelKybd = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, hInst, 0);
+    hhkLowLevelKybd = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, hInst, 0); // Install keyboard hook
 
-    // Initialize GLFW (hidden at startup)
-    if (!glfwInit())
+    if (!glfwInit()) // Initialize GLFW (hidden at startup)
         return false;
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -118,6 +116,11 @@ bool App::init(HINSTANCE hInst)
     if (!UI::init(overlayWindows[0])) // Initialize UI (Fonts, ImGui) for the primary window
         return false;
 
+    PlaySoundW(L"SystemAsterisk", NULL, SND_ALIAS | SND_ASYNC); // Play a start-up sound
+    char startMsg[256];
+    snprintf(startMsg, sizeof(startMsg), "Look Away! is now running in your system tray.");
+    tray.showNotification("Look Away! Started", startMsg);
+
     return true;
 }
 
@@ -140,7 +143,7 @@ static const char* BREAK_MESSAGES[] = {
     "20 seconds of freedom for your retinas",
     "Look up. Look far. Look easy.",
     "Rest your focus — the screen will wait",
-    "Hydrate while you're at it \xf0\x9f\x92\xa7",
+    "Hydrate while you're at it.",
     "Step away. Even 20 seconds helps.",
     "Stare at something that isn't a screen",
 };
@@ -168,6 +171,8 @@ void App::beginOverlay()
     overlayState = OverlayState::FadingIn;
     overlayAlpha  = 0.0f;
     fadeStartTime = glfwGetTime();
+
+    PlaySoundW(L"SystemNotification", NULL, SND_ALIAS | SND_ASYNC); // Play a notification sound when the break starts
 
     pickNextMessage();
 
@@ -229,8 +234,7 @@ void App::updateOverlay()
     {
         breakRemaining = timer.getRemaining();
         
-        // Force topmost and focus during break
-        for (auto* w : overlayWindows)
+        for (auto* w : overlayWindows) // Force topmost and focus during break
         {
             HWND hwnd = glfwGetWin32Window(w);
             if (GetForegroundWindow() != hwnd && w == overlayWindows[0])
@@ -240,8 +244,7 @@ void App::updateOverlay()
         }
     }
 
-    // Render to all windows
-    for (size_t i = 0; i < overlayWindows.size(); ++i)
+    for (size_t i = 0; i < overlayWindows.size(); ++i) // Render to all windows
     {
         glfwMakeContextCurrent(overlayWindows[i]);
         glClearColor(0.f, 0.f, 0.f, 0.f);
