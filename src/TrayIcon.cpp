@@ -51,6 +51,18 @@ void TrayIcon::updateTooltip(const char* text)
     Shell_NotifyIconA(NIM_MODIFY, &nid);
 }
 
+void TrayIcon::showNotification(const char* title, const char* message)
+{
+    nid.uFlags = NIF_INFO;
+    strncpy(nid.szInfoTitle, title, 63);
+    nid.szInfoTitle[63] = '\0';
+    strncpy(nid.szInfo, message, 255);
+    nid.szInfo[255] = '\0';
+    nid.dwInfoFlags = NIIF_INFO; // Standard info icon
+    nid.uTimeout = 5000;         // 5 seconds (deprecated in modern Windows but kept for compatibility)
+    Shell_NotifyIconA(NIM_MODIFY, &nid);
+}
+
 void TrayIcon::showContextMenu()
 {
     HMENU menu = CreatePopupMenu();

@@ -55,6 +55,7 @@ target_link_libraries(LookAway
     opengl32
     shell32 # Shell_NotifyIcon
     user32 # Win32 window / menu APIs
+    winmm  # PlaySound
 )
 
 # Copy font files next to the .exe so runtime paths resolve
