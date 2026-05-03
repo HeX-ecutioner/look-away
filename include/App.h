@@ -26,15 +26,13 @@ public:
     void shutdown();
 
     static LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
-    static LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam);
-
+    
 private:
     std::vector<GLFWwindow*> overlayWindows;
     TimerManager timer;
     TrayIcon tray;
     bool wantsQuit = false;
     HHOOK hhkLowLevelKybd = nullptr;
-    HHOOK hhkLowLevelMouse = nullptr;
 
     // Overlay animation
     OverlayState overlayState = OverlayState::Hidden;

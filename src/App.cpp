@@ -267,21 +267,17 @@ void App::updateOverlay()
 
 void App::run()
 {
-    while (true)
+    while (!wantsQuit)
     {
         pumpTrayMessages();
-        if (wantsQuit)
-            break;
-
         timer.update();
 
-        // Update Tray Tooltip
-        static double lastTooltipUpdate = 0;
-        double currentTime = glfwGetTime();
-        if (currentTime - lastTooltipUpdate > 1.0)
+        // Update Tray Tooltip only when it changes or every second
+        static int lastRemaining = -1;
+        int remaining = timer.getRemaining();
+        if (remaining != lastRemaining)
         {
-            lastTooltipUpdate = currentTime;
-            int remaining = timer.getRemaining();
+            lastRemaining = remaining;
             char buf[128];
             if (timer.isOnBreak())
                 snprintf(buf, sizeof(buf), "Look Away! - On Break (%ds left)", remaining);
@@ -291,13 +287,11 @@ void App::run()
         }
 
         bool nowOnBreak = timer.isOnBreak();
-
         if (nowOnBreak && !wasOnBreak)
         {
             tray.setLocked(true);
             beginOverlay();
         }
-
         else if (!nowOnBreak && wasOnBreak)
         {
             tray.setLocked(false);
@@ -330,11 +324,13 @@ void App::run()
         }
         else
         {
-            Sleep(50);
-            glfwPollEvents();
+            // Use a wait with timeout to keep CPU usage at near-zero when idle.
+            // This will wake up immediately for mouse/keyboard/tray events.
+            glfwWaitEventsTimeout(0.5);
         }
     }
 }
+
 
 void App::shutdown()
 {
