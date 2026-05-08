@@ -31,12 +31,23 @@ Instead of a jarring pop-up, the app gently fades in a fullscreen overlay:
 4. **Countdown Pulse**: A live 20-second timer keeps you informed of your progress.
 5. **Auto-Resume**: Once the 20 seconds are up, the overlay fades out, returning you to your flow.
 
-## 🧠 The Workflow:
+## 🧠 The Workflow
 1. Launch `LookAway.exe`.
 2. Find the icon in your **System Tray**.
 3. Work until the screen fades to black.
 4. **Follow the instructions**: Look far away, blink, and breathe.
 5. Return to work refreshed.
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="screenshots/1.png?raw=true" width="49%" alt="App Screenshot 1" />
+  <img src="screenshots/2.png?raw=true" width="38%" alt="App Screenshot 2" />
+</p>
+<p align="center">
+  <img src="screenshots/3.png?raw=true" width="90%" alt="App Screenshot 3" />
+</p>
+
 
 ## 🛠️ Tech Stack
 
@@ -93,7 +104,7 @@ Ensure you have **CMake** and a **C++17** compatible compiler installed.
    ```
 
 4. **Run**:
-   Find `LookAway.exe` in the `build` folder.
+   `LookAway.exe` in the `build` folder.
 
 ## 📌 Core Features
 
