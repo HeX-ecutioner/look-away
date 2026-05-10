@@ -43,10 +43,10 @@ echo.
 
 if exist Release\LookAway.exe (
     echo Running LookAway...
-    start "" Release\LookAway.exe
+    start "" /wait Release\LookAway.exe
 ) else if exist LookAway.exe (
     echo Running LookAway...
-    start "" LookAway.exe
+    start "" /wait LookAway.exe
 )
 
 :end
