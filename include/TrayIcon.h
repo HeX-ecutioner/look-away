@@ -11,18 +11,34 @@
 #define ID_TRAY_ABOUT 1002
 #define ID_TRAY_QUIT 1003
 
+#define ID_TRAY_SOUND_DEFAULT 1010
+#define ID_TRAY_SOUND_RAIN 1011
+#define ID_TRAY_SOUND_CHIME 1012
+#define ID_TRAY_SOUND_MUTE 1013
+
+enum class SoundSetting {
+    Default,
+    Rain,
+    Chime,
+    Mute
+};
+
 class TrayIcon
 {
 public:
     // Callbacks set by App before calling init()
     std::function<void()> onBreakNow;
     std::function<void()> onQuit;
+    std::function<void(SoundSetting)> onSoundChanged;
 
     bool init(HINSTANCE hInst);
     void remove();
     void setLocked(bool locked) { m_locked = locked; }
     void updateTooltip(const char *text);
     void showNotification(const char *title, const char *message);
+
+    SoundSetting currentSound = SoundSetting::Default;
+    void setSound(SoundSetting sound) { currentSound = sound; }
 
     // Win32 window procedure for the hidden message pump window
     static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);

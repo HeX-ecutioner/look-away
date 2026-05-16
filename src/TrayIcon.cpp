@@ -65,6 +65,15 @@ void TrayIcon::showContextMenu()
     HMENU menu = CreatePopupMenu();
     AppendMenuA(menu, MF_STRING, ID_TRAY_BREAK_NOW, "Take a Break Now");
     AppendMenuA(menu, MF_SEPARATOR, 0, nullptr);
+
+    HMENU soundMenu = CreatePopupMenu();
+    AppendMenuA(soundMenu, MF_STRING | (currentSound == SoundSetting::Default ? MF_CHECKED : MF_UNCHECKED), ID_TRAY_SOUND_DEFAULT, "Default");
+    AppendMenuA(soundMenu, MF_STRING | (currentSound == SoundSetting::Rain ? MF_CHECKED : MF_UNCHECKED), ID_TRAY_SOUND_RAIN, "Rain");
+    AppendMenuA(soundMenu, MF_STRING | (currentSound == SoundSetting::Chime ? MF_CHECKED : MF_UNCHECKED), ID_TRAY_SOUND_CHIME, "Chime");
+    AppendMenuA(soundMenu, MF_STRING | (currentSound == SoundSetting::Mute ? MF_CHECKED : MF_UNCHECKED), ID_TRAY_SOUND_MUTE, "Mute");
+    AppendMenuA(menu, MF_POPUP, (UINT_PTR)soundMenu, "Break Sound");
+
+    AppendMenuA(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuA(menu, MF_STRING, ID_TRAY_ABOUT, "About");
     AppendMenuA(menu, MF_STRING, ID_TRAY_QUIT, "Quit");
 
@@ -79,6 +88,22 @@ void TrayIcon::showContextMenu()
     {
     case ID_TRAY_BREAK_NOW:
         if (onBreakNow) onBreakNow();
+        break;
+    case ID_TRAY_SOUND_DEFAULT:
+        setSound(SoundSetting::Default);
+        if (onSoundChanged) onSoundChanged(currentSound);
+        break;
+    case ID_TRAY_SOUND_RAIN:
+        setSound(SoundSetting::Rain);
+        if (onSoundChanged) onSoundChanged(currentSound);
+        break;
+    case ID_TRAY_SOUND_CHIME:
+        setSound(SoundSetting::Chime);
+        if (onSoundChanged) onSoundChanged(currentSound);
+        break;
+    case ID_TRAY_SOUND_MUTE:
+        setSound(SoundSetting::Mute);
+        if (onSoundChanged) onSoundChanged(currentSound);
         break;
     case ID_TRAY_ABOUT:
         ShellExecuteA(nullptr, "open", "https://github.com/HeX-ecutioner/look-away", nullptr, nullptr, SW_SHOWNORMAL);
