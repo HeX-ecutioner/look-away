@@ -10,10 +10,14 @@ if "%~1"=="" goto end_parse
 if /i "%~1"=="debug" (
     set BUILD_TYPE=Debug
     set DEBUG_TIMER=ON
-)
-if /i "%~1"=="clean" (
+) else if /i "%~1"=="clean" (
     echo Cleaning build directory...
     if exist %BUILD_DIR% rmdir /s /q %BUILD_DIR%
+    goto end
+) else (
+    echo.
+    echo Error: Unknown argument "%~1"
+    echo Usage: %~nx0 [debug ^| clean]
     goto end
 )
 shift
