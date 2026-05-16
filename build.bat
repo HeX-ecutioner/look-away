@@ -25,10 +25,23 @@ echo Building Look Away! (%BUILD_TYPE%)
 taskkill /f /im LookAway.exe >nul 2>&1
 
 if not exist %BUILD_DIR% mkdir %BUILD_DIR%
-cd %BUILD_DIR%
+pushd %BUILD_DIR%
 
-cmake .. -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DDEBUG_TIMER=%DEBUG_TIMER%
-cmake --build . --config %BUILD_TYPE%
+set "GENERATOR_FLAGS="
+where ninja >nul 2>nul
+if !ERRORLEVEL! equ 0 (
+    if not exist CMakeCache.txt (
+        set "GENERATOR_FLAGS=-G Ninja"
+    ) else (
+        findstr /C:"CMAKE_GENERATOR:INTERNAL=Ninja" CMakeCache.txt >nul 2>&1
+        if !ERRORLEVEL! equ 0 (
+            set "GENERATOR_FLAGS=-G Ninja"
+        )
+    )
+)
+
+cmake .. %GENERATOR_FLAGS% -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DDEBUG_TIMER=%DEBUG_TIMER%
+cmake --build . --config %BUILD_TYPE% --parallel %NUMBER_OF_PROCESSORS%
 
 if %ERRORLEVEL% neq 0 (
     echo.
@@ -48,6 +61,7 @@ if exist Release\LookAway.exe (
     echo Running LookAway...
     start "" /wait LookAway.exe
 )
+popd
 
 :end
 echo.
