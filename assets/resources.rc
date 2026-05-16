@@ -1,3 +1,5 @@
 101 ICON "app.ico"
+104 ICON "app_green.ico"
+105 ICON "app_yellow.ico"
 102 WAVE "rain.wav"
 103 WAVE "chime.wav"

@@ -60,6 +60,13 @@ void TrayIcon::showNotification(const char* title, const char* message)
     Shell_NotifyIconA(NIM_MODIFY, &nid);
 }
 
+void TrayIcon::setIcon(int iconId)
+{
+    nid.hIcon = LoadIcon(hInst, MAKEINTRESOURCE(iconId));
+    nid.uFlags = NIF_ICON;
+    Shell_NotifyIconA(NIM_MODIFY, &nid);
+}
+
 void TrayIcon::showContextMenu()
 {
     HMENU menu = CreatePopupMenu();

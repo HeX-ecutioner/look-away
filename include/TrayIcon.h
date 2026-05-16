@@ -36,6 +36,7 @@ public:
     void setLocked(bool locked) { m_locked = locked; }
     void updateTooltip(const char *text);
     void showNotification(const char *title, const char *message);
+    void setIcon(int iconId);
 
     SoundSetting currentSound = SoundSetting::Default;
     void setSound(SoundSetting sound) { currentSound = sound; }
