@@ -166,7 +166,21 @@ void App::beginOverlay()
     overlayAlpha = 0.0f;
     fadeStartTime = glfwGetTime();
 
-    PlaySoundW(L"SystemNotification", NULL, SND_ALIAS | SND_ASYNC); // Play a notification sound when the break starts
+    switch (tray.currentSound)
+    {
+    case SoundSetting::Default:
+        PlaySoundW(L"SystemNotification", NULL, SND_ALIAS | SND_ASYNC);
+        break;
+    case SoundSetting::Rain:
+        PlaySoundW(MAKEINTRESOURCEW(IDR_WAVE_RAIN), GetModuleHandle(NULL), SND_RESOURCE | SND_ASYNC);
+        break;
+    case SoundSetting::Chime:
+        PlaySoundW(MAKEINTRESOURCEW(IDR_WAVE_CHIME), GetModuleHandle(NULL), SND_RESOURCE | SND_ASYNC);
+        break;
+    case SoundSetting::Mute:
+        break;
+    }
+
 
     pickNextMessage();
 
