@@ -113,6 +113,7 @@ bool App::init(HINSTANCE hInst)
 
     PlaySoundW(L"SystemAsterisk", NULL, SND_ALIAS | SND_ASYNC); // Play a start-up sound
     tray.showNotification("Look Away! Started", "Look Away! is now running in your system tray.");
+    tray.setIcon(IDI_ICON_GREEN); // Initialize with green dot
 
     return true;
 }
@@ -287,11 +288,13 @@ void App::run()
         if (nowOnBreak && !wasOnBreak)
         {
             tray.setLocked(true);
+            tray.setIcon(IDI_ICON_YELLOW);
             beginOverlay();
         }
         else if (!nowOnBreak && wasOnBreak)
         {
             tray.setLocked(false);
+            tray.setIcon(IDI_ICON_GREEN);
             if (overlayState == OverlayState::Visible || overlayState == OverlayState::FadingIn)
             {
                 overlayState = OverlayState::FadingOut;
