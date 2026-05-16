@@ -18,7 +18,6 @@ To achieve that, **Look Away!** is designed around:
 - ✨ **Glassmorphism Aesthetics** (A premium, dark-mode UI with smooth fade transitions)
 - 🚀 **Zero-Config Performance** (Lightweight C++ core with a tiny memory footprint)
 
-
 ## 🖥️ The Rest Experience
 
 Look Away! isn't just a timer; it's a dedicated environment for your eyes to recover.
@@ -60,22 +59,32 @@ Instead of a jarring pop-up, the app gently fades in a fullscreen overlay:
 
 ## 🗂️ Project Structure
 
-```yml
+```sh
+/external              <-- External dependencies
+    /glfw              # Windowing system
+    /glad              # OpenGL loader  
+    /imgui             # GUI library
 /include               <-- Architecture definitions
     App.h              # Main application orchestrator
     TimerManager.h     # Logic for work/break cycles
     TrayIcon.h         # Native Win32 system tray integration
     UI.h               # ImGui-based rendering interface
+    resources.h        # Resource IDs and icon definitions
 /src                   <-- Implementation
     main.cpp           # Windows entry point (WinMain)
     App.cpp            # Animation & workflow logic
     TimerManager.cpp   # Accurate second-tracking
     TrayIcon.cpp       # System tray & menu handling
     UI.cpp             # Custom rendering
-/assets                <-- Branding
-    app.ico            # High-resolution application icons
+/assets                <-- Branding & Audio
+    app.ico            # Main application icon
+    app_green.ico      # Green status tray icon
+    app_yellow.ico     # Yellow status tray icon
+    chime.wav          # Break start notification sound
+    rain.wav           # Ambient focus sound
+    resources.rc       # Windows resource script
 CMakeLists.txt         # Modern CMake build configuration
-build.bat              # One-click Windows build script
+build.bat              # Unified build script
 ```
 
 ### Why this architecture?
@@ -99,8 +108,10 @@ Ensure you have **CMake** and a **C++17** compatible compiler installed.
    ```
 
 3. **Build using the script**:
-   ```powershell
-   ./build.bat
+   ```bash
+   ./build.bat          # Standard Release build
+   ./build.bat debug    # Debug build (10s work / 5s break)
+   ./build.bat clean    # Clean build artifacts
    ```
 
 4. **Run**:
@@ -118,8 +129,13 @@ Ensure you have **CMake** and a **C++17** compatible compiler installed.
 - **Anti-Distraction**: Hides the mouse cursor during breaks.
 - **Smooth Animations**: 600ms ease-in-out fade durations.
 
+### 🚥 Visual Status Indicator
+- **Live Tray Feedback**: A small dynamic dot on the system tray icon indicates the current state:
+  - 🟢 **Green**: Timer is active and counting down.
+  - 🟡 **Yellow**: Break is in progress.
+
 ### 🍱 System Tray Integration
-- **Right-click menu**: Force a break or quit the app.
+- **Right-click menu**: Force a break, reset timer, or quit the app.
 - **Silent Background**: No taskbar icon, only tray presence.
 
 ## ⚖️ License
