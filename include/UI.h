@@ -5,6 +5,6 @@
 namespace UI
 {
     bool init(GLFWwindow *window);
-    void renderOverlay(float alpha, int remaining, const char *msg);
+    void renderOverlay(float alpha, int remaining, const char *msg, float skipProgress = 0.0f, bool showHint = true);
     void shutdown();
 }

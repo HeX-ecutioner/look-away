@@ -43,10 +43,16 @@ private:
     const char *currentMessage = nullptr;
     static constexpr float FADE_DURATION = 0.6f;
 
+    // Escape hold-to-skip
+    double escapeHoldStartTime = 0.0;
+    float escapeHoldProgress = 0.0f;
+    static constexpr double ESCAPE_HOLD_DURATION = 2.0;
+
     // Helpers
     void pumpTrayMessages();
     void beginOverlay();
     void endOverlay();
     void updateOverlay();
     void pickNextMessage();
+    void triggerSkipBreak();
 };

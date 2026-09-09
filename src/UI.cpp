@@ -8,6 +8,7 @@ namespace UI
 {
     static ImFont* fontHuge = nullptr;
     static ImFont* fontTitle = nullptr;
+    static ImFont* fontHint = nullptr;
 
     bool init(GLFWwindow* window)
     {
@@ -40,15 +41,17 @@ namespace UI
 
         fontHuge = tryFont(io.Fonts, 140.f, "Cousine-Regular.ttf");
         fontTitle = tryFont(io.Fonts, 56.f, "Roboto-Medium.ttf");
+        fontHint = tryFont(io.Fonts, 18.f, "Roboto-Medium.ttf");
 
         if (!fontHuge) fontHuge = io.Fonts->AddFontDefault();
         if (!fontTitle) fontTitle = io.Fonts->AddFontDefault();
+        if (!fontHint) fontHint = io.Fonts->AddFontDefault();
 
         io.Fonts->Build();
         return true;
     }
 
-    void renderOverlay(float alpha, int remaining, const char* msg)
+    void renderOverlay(float alpha, int remaining, const char* msg, float skipProgress, bool showHint)
     {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -85,6 +88,34 @@ namespace UI
             ImVec2 msgPos = ImVec2(cx - msgSz.x * 0.5f, cy + 80.f);
             dl->AddText(fontTitle, 56.f, msgPos, IM_COL32(230, 230, 230, (int)(alpha * 220)), msg);
             ImGui::PopFont();
+        }
+
+        if (showHint)
+        {
+            ImGui::PushFont(fontHint);
+            const char* hintText = (skipProgress > 0.0f) ? "Skipping break..." : "Hold Esc for 2 seconds to skip";
+            ImVec2 hintSz = ImGui::CalcTextSize(hintText);
+            float hintY = disp.y - 70.f;
+            ImVec2 hintPos = ImVec2(cx - hintSz.x * 0.5f, hintY);
+            dl->AddText(fontHint, 18.f, hintPos, IM_COL32(180, 180, 180, (int)(alpha * 140)), hintText);
+            ImGui::PopFont();
+
+            if (skipProgress > 0.0f)
+            {
+                float barWidth = 180.f;
+                float barHeight = 4.f;
+                float barX = cx - barWidth * 0.5f;
+                float barY = hintY + hintSz.y + 8.f;
+
+                // Background track
+                dl->AddRectFilled(ImVec2(barX, barY), ImVec2(barX + barWidth, barY + barHeight),
+                                  IM_COL32(60, 60, 60, (int)(alpha * 180)), 2.0f);
+
+                // Progress fill
+                float fillWidth = barWidth * (skipProgress > 1.0f ? 1.0f : skipProgress);
+                dl->AddRectFilled(ImVec2(barX, barY), ImVec2(barX + fillWidth, barY + barHeight),
+                                  IM_COL32(220, 220, 220, (int)(alpha * 240)), 2.0f);
+            }
         }
 
         ImGui::End();

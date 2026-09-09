@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <random>
 #include <mmsystem.h>
+#include <atomic>
 
 static float easeInOut(float t)
 {
@@ -21,24 +22,35 @@ static float easeInOut(float t)
 }
 
 static App *g_AppInstance = nullptr;
+static std::atomic<ULONGLONG> g_lastHeartbeatTime{0};
 
 LRESULT CALLBACK App::LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     if (nCode == HC_ACTION && g_AppInstance && g_AppInstance->timer.isOnBreak())
     {
+        // Safety guard: If the main render/event loop has become unresponsive (no heartbeat for > 1000ms),
+        // pass all keystrokes through so the user is never trapped by a frozen process.
+        ULONGLONG lastHeartbeat = g_lastHeartbeatTime.load(std::memory_order_relaxed);
+        if (lastHeartbeat > 0 && (GetTickCount64() - lastHeartbeat > 1000))
+            return CallNextHookEx(nullptr, nCode, wParam, lParam);
         KBDLLHOOKSTRUCT *pkbhs = (KBDLLHOOKSTRUCT *)lParam;
 
         bool altDown = (pkbhs->flags & LLKHF_ALTDOWN),
-            ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000),
+            ctrlDown = (GetAsyncKeyState(VK_CONTROL) & 0x8000),
             tab = (pkbhs->vkCode == VK_TAB),
+            f4 = (pkbhs->vkCode == VK_F4),
             escape = (pkbhs->vkCode == VK_ESCAPE),
             lWin = (pkbhs->vkCode == VK_LWIN),
-            rWin = (pkbhs->vkCode == VK_RWIN),
-            f4 = (pkbhs->vkCode == VK_F4),
-            space = (pkbhs->vkCode == VK_SPACE);
+            rWin = (pkbhs->vkCode == VK_RWIN);
 
-        // Block user attempts to tamper with the break
-        if ((altDown && (tab || escape || f4 || space)) || lWin || rWin || (ctrlDown && escape))
+        // Break enforcement filter during active break:
+        // - Block Alt+Tab task switching
+        // - Block Alt+F4 window closing
+        // - Block Windows keys (Start menu)
+        // - Block Ctrl+Esc (Start menu)
+        // Standalone Escape is NOT blocked: quick taps pass through, 2-second hold skips.
+        // Heartbeat fail-safe: if the process freezes, all keys pass through automatically.
+        if ((altDown && (tab || f4)) || lWin || rWin || (ctrlDown && escape))
             return 1;
     }
     return CallNextHookEx(nullptr, nCode, wParam, lParam);
@@ -163,9 +175,12 @@ void App::pickNextMessage()
 
 void App::beginOverlay()
 {
+    g_lastHeartbeatTime.store(GetTickCount64(), std::memory_order_relaxed);
     overlayState = OverlayState::FadingIn;
     overlayAlpha = 0.0f;
     fadeStartTime = glfwGetTime();
+    escapeHoldStartTime = 0.0;
+    escapeHoldProgress = 0.0f;
 
     switch (tray.currentSound)
     {
@@ -197,6 +212,8 @@ void App::beginOverlay()
 
 void App::endOverlay()
 {
+    PlaySoundW(nullptr, nullptr, 0); // Stop any lingering audio
+
     for (auto *w : overlayWindows)
     {
         glfwHideWindow(w);
@@ -205,10 +222,38 @@ void App::endOverlay()
 
     overlayState = OverlayState::Hidden;
     overlayAlpha = 0.f;
+    escapeHoldStartTime = 0.0;
+    escapeHoldProgress = 0.0f;
+}
+
+void App::triggerSkipBreak()
+{
+    escapeHoldStartTime = 0.0;
+    escapeHoldProgress = 0.0f;
+
+    PlaySoundW(nullptr, nullptr, 0); // Stop break sound immediately
+
+    for (auto *w : overlayWindows)
+    {
+        glfwSetInputMode(w, GLFW_CURSOR, GLFW_CURSOR_NORMAL); // Restore cursor immediately
+    }
+
+    timer.skipBreak();
+
+    tray.setLocked(false);
+    tray.setIcon(IDI_ICON_GREEN);
+    wasOnBreak = false;
+
+    if (overlayState == OverlayState::Visible || overlayState == OverlayState::FadingIn)
+    {
+        overlayState = OverlayState::FadingOut;
+        fadeStartTime = glfwGetTime();
+    }
 }
 
 void App::updateOverlay()
 {
+    g_lastHeartbeatTime.store(GetTickCount64(), std::memory_order_relaxed);
     double now = glfwGetTime();
 
     switch (overlayState)
@@ -241,6 +286,35 @@ void App::updateOverlay()
     {
         breakRemaining = timer.getRemaining();
 
+        // Check hold-to-skip via Escape key (requires holding for ESCAPE_HOLD_DURATION)
+        if (overlayState == OverlayState::Visible || overlayState == OverlayState::FadingIn)
+        {
+            bool isEscDown = (GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0;
+            bool noModifiers = !(GetAsyncKeyState(VK_CONTROL) & 0x8000) && !(GetAsyncKeyState(VK_MENU) & 0x8000);
+
+            if (isEscDown && noModifiers)
+            {
+                if (escapeHoldStartTime <= 0.0)
+                    escapeHoldStartTime = now;
+
+                double heldDuration = now - escapeHoldStartTime;
+                escapeHoldProgress = (float)(heldDuration / ESCAPE_HOLD_DURATION);
+                if (escapeHoldProgress > 1.0f)
+                    escapeHoldProgress = 1.0f;
+
+                if (heldDuration >= ESCAPE_HOLD_DURATION)
+                {
+                    triggerSkipBreak();
+                    return;
+                }
+            }
+            else
+            {
+                escapeHoldStartTime = 0.0;
+                escapeHoldProgress = 0.0f;
+            }
+        }
+
         for (auto *w : overlayWindows) // Force topmost and focus during break
         {
             HWND hwnd = glfwGetWin32Window(w);
@@ -250,6 +324,11 @@ void App::updateOverlay()
             SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
         }
     }
+    else
+    {
+        escapeHoldStartTime = 0.0;
+        escapeHoldProgress = 0.0f;
+    }
 
     for (size_t i = 0; i < overlayWindows.size(); ++i)
     {
@@ -258,7 +337,7 @@ void App::updateOverlay()
         glClear(GL_COLOR_BUFFER_BIT);
 
         if (i == 0)
-            UI::renderOverlay(overlayAlpha, breakRemaining, currentMessage);
+            UI::renderOverlay(overlayAlpha, breakRemaining, currentMessage, escapeHoldProgress, timer.isOnBreak());
 
         glfwSwapBuffers(overlayWindows[i]);
     }
@@ -329,6 +408,8 @@ void App::run()
 
 void App::shutdown()
 {
+    PlaySoundW(nullptr, nullptr, 0);
+
     if (hhkLowLevelKybd)
         UnhookWindowsHookEx(hhkLowLevelKybd);
 
