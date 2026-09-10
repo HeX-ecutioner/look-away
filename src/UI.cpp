@@ -1,4 +1,5 @@
 #include "UI.h"
+#include "AssetManager.h"
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
@@ -29,23 +30,36 @@ namespace UI
 
         auto tryFont = [&](ImFontAtlas* atlas, float size, const char* name) -> ImFont*
         {
-            char path[512];
-            snprintf(path, sizeof(path), "fonts/%s", name);
-            ImFont* f = atlas->AddFontFromFileTTF(path, size);
-            if (f) return f;
-
-            snprintf(path, sizeof(path), "external/imgui/misc/fonts/%s", name);
-            f = atlas->AddFontFromFileTTF(path, size);
-            return f;
+            std::filesystem::path fontPath = AssetManager::resolveFontPath(name);
+            if (!fontPath.empty())
+            {
+                ImFont* f = atlas->AddFontFromFileTTF(fontPath.string().c_str(), size);
+                if (f)
+                    return f;
+                AssetManager::logError("ImFontAtlas failed to parse font file: " + fontPath.string());
+            }
+            return nullptr;
         };
 
         fontHuge = tryFont(io.Fonts, 140.f, "Cousine-Regular.ttf");
         fontTitle = tryFont(io.Fonts, 56.f, "Roboto-Medium.ttf");
         fontHint = tryFont(io.Fonts, 18.f, "Roboto-Medium.ttf");
 
-        if (!fontHuge) fontHuge = io.Fonts->AddFontDefault();
-        if (!fontTitle) fontTitle = io.Fonts->AddFontDefault();
-        if (!fontHint) fontHint = io.Fonts->AddFontDefault();
+        if (!fontHuge)
+        {
+            AssetManager::logWarning("Using ImGui default fallback font for fontHuge.");
+            fontHuge = io.Fonts->AddFontDefault();
+        }
+        if (!fontTitle)
+        {
+            AssetManager::logWarning("Using ImGui default fallback font for fontTitle.");
+            fontTitle = io.Fonts->AddFontDefault();
+        }
+        if (!fontHint)
+        {
+            AssetManager::logWarning("Using ImGui default fallback font for fontHint.");
+            fontHint = io.Fonts->AddFontDefault();
+        }
 
         io.Fonts->Build();
         return true;
