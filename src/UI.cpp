@@ -65,13 +65,35 @@ namespace UI
         return true;
     }
 
-    void renderOverlay(float alpha, int remaining, const char* msg, float skipProgress, bool showHint)
+    void beginFrame()
     {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
+    }
+
+    void renderOverlay(GLFWwindow* window, float alpha, int remaining, const char* msg, float skipProgress, bool showHint)
+    {
+        if (!window)
+            return;
+
+        int win_w = 0, win_h = 0;
+        int fb_w = 0, fb_h = 0;
+        glfwGetWindowSize(window, &win_w, &win_h);
+        glfwGetFramebufferSize(window, &fb_w, &fb_h);
+        if (win_w <= 0 || win_h <= 0)
+            return;
 
         ImGuiIO& io = ImGui::GetIO();
+        io.DisplaySize = ImVec2((float)win_w, (float)win_h);
+        io.DisplayFramebufferScale = ImVec2(
+            (win_w > 0) ? (float)fb_w / (float)win_w : 1.0f,
+            (win_h > 0) ? (float)fb_h / (float)win_h : 1.0f
+        );
+        if (io.DeltaTime <= 0.0f)
+            io.DeltaTime = 1.0f / 60.0f;
+
+        ImGui::NewFrame();
+
         ImVec2 disp = io.DisplaySize;
 
         ImGui::SetNextWindowPos({0, 0}); // Fullscreen window

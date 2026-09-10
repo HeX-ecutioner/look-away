@@ -333,14 +333,15 @@ void App::updateOverlay()
         escapeHoldProgress = 0.0f;
     }
 
+    UI::beginFrame();
+
     for (size_t i = 0; i < overlayWindows.size(); ++i)
     {
         glfwMakeContextCurrent(overlayWindows[i]);
         glClearColor(0.f, 0.f, 0.f, overlayAlpha);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        if (i == 0)
-            UI::renderOverlay(overlayAlpha, breakRemaining, currentMessage, escapeHoldProgress, timer.isOnBreak());
+        UI::renderOverlay(overlayWindows[i], overlayAlpha, breakRemaining, currentMessage, escapeHoldProgress, timer.isOnBreak());
 
         glfwSwapBuffers(overlayWindows[i]);
     }
