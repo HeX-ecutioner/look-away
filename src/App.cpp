@@ -3,6 +3,7 @@
 #include "App.h"
 #include "UI.h"
 #include "resources.h"
+#include "AssetManager.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
@@ -123,7 +124,8 @@ bool App::init(HINSTANCE hInst)
     if (!UI::init(overlayWindows[0])) // Initialize UI (Fonts, ImGui) for the primary window
         return false;
 
-    PlaySoundW(L"SystemAsterisk", NULL, SND_ALIAS | SND_ASYNC); // Play a start-up sound
+    if (!PlaySoundW(L"SystemAsterisk", NULL, SND_ALIAS | SND_ASYNC)) // Play a start-up sound
+        AssetManager::logWarning("Failed to play start-up sound (SystemAsterisk).");
     tray.showNotification("Look Away! Started", "Look Away! is now running in your system tray.");
     tray.setIcon(IDI_ICON_GREEN); // Initialize with green dot
 
@@ -185,13 +187,14 @@ void App::beginOverlay()
     switch (tray.currentSound)
     {
     case SoundSetting::Default:
-        PlaySoundW(L"SystemNotification", NULL, SND_ALIAS | SND_ASYNC);
+        if (!PlaySoundW(L"SystemNotification", NULL, SND_ALIAS | SND_ASYNC))
+            AssetManager::logError("Failed to play default break notification sound (SystemNotification).");
         break;
     case SoundSetting::Rain:
-        PlaySoundW(MAKEINTRESOURCEW(IDR_WAVE_RAIN), GetModuleHandle(NULL), SND_RESOURCE | SND_ASYNC);
+        AssetManager::playSound("rain.wav", IDR_WAVE_RAIN);
         break;
     case SoundSetting::Chime:
-        PlaySoundW(MAKEINTRESOURCEW(IDR_WAVE_CHIME), GetModuleHandle(NULL), SND_RESOURCE | SND_ASYNC);
+        AssetManager::playSound("chime.wav", IDR_WAVE_CHIME);
         break;
     case SoundSetting::Mute:
         break;
