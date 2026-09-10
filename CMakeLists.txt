@@ -54,6 +54,7 @@ set_target_properties(LookAwayResources PROPERTIES INCLUDE_DIRECTORIES "")
 add_executable(LookAway WIN32
     src/main.cpp
     src/App.cpp
+    src/AssetManager.cpp
     src/TimerManager.cpp
     src/TrayIcon.cpp
     src/UI.cpp
@@ -86,3 +87,22 @@ foreach(FONT_NAME ${REQUIRED_FONTS})
         configure_file(${FONT_SRC} "${CMAKE_CURRENT_BINARY_DIR}/fonts/${FONT_NAME}" COPYONLY)
     endif()
 endforeach()
+
+# Copy audio assets to binary directory
+set(REQUIRED_SOUNDS "rain.wav" "chime.wav")
+foreach(SOUND_NAME ${REQUIRED_SOUNDS})
+    set(SOUND_SRC "${CMAKE_SOURCE_DIR}/assets/${SOUND_NAME}")
+    if(EXISTS ${SOUND_SRC})
+        configure_file(${SOUND_SRC} "${CMAKE_CURRENT_BINARY_DIR}/assets/${SOUND_NAME}" COPYONLY)
+    endif()
+endforeach()
+
+# Ensure runtime assets are present in the target directory (supporting multi-config builds like MSVC Release/Debug)
+add_custom_command(TARGET LookAway POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_BINARY_DIR}/fonts"
+        "$<TARGET_FILE_DIR:LookAway>/fonts"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_BINARY_DIR}/assets"
+        "$<TARGET_FILE_DIR:LookAway>/assets"
+)
