@@ -46,11 +46,14 @@ public:
 
 private:
     bool m_locked = false;
+    int m_currentIconId = 101; // IDI_ICON1 default
     NOTIFYICONDATAA nid{}; // ANSI variant — works with MinGW without UNICODE
     HWND hwnd = nullptr;
     HINSTANCE hInst = nullptr;
 
+    void addTrayIcon();
     void showContextMenu();
 
     static TrayIcon *s_instance; // Singleton pointer so WndProc can reach the instance
+    static UINT s_taskbarCreatedMsg;
 };

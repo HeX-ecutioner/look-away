@@ -2,34 +2,52 @@
 #include "resources.h"
 
 TrayIcon* TrayIcon::s_instance = nullptr;
+UINT TrayIcon::s_taskbarCreatedMsg = 0;
+
+void TrayIcon::addTrayIcon()
+{
+    nid.cbSize = sizeof(NOTIFYICONDATAA);
+    nid.hWnd = hwnd;
+    nid.uID = TRAY_ID;
+    nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+    nid.uCallbackMessage = WM_TRAYICON;
+    if (!nid.hIcon)
+    {
+        nid.hIcon = LoadIcon(hInst, MAKEINTRESOURCE(m_currentIconId));
+    }
+    if (nid.szTip[0] == '\0')
+    {
+        strncpy(nid.szTip, "LookAway - 20-20-20 Timer", sizeof(nid.szTip) - 1);
+        nid.szTip[sizeof(nid.szTip) - 1] = '\0';
+    }
+
+    Shell_NotifyIconA(NIM_ADD, &nid);
+}
 
 bool TrayIcon::init(HINSTANCE hInstance)
 {
     hInst = hInstance;
     s_instance = this;
+    s_taskbarCreatedMsg = RegisterWindowMessageW(L"TaskbarCreated");
 
-    WNDCLASSEXA wc  = {}; // Register a hidden message-only window class for the tray pump
+    WNDCLASSEXA wc  = {}; // Register a hidden top-level window class for tray messages & TaskbarCreated
     wc.cbSize = sizeof(WNDCLASSEXA);
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInst;
     wc.lpszClassName = "LookAwayTrayClass";
     RegisterClassExA(&wc);
 
-    hwnd = CreateWindowExA(0, "LookAwayTrayClass", "LookAway", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, hInst, nullptr);
+    hwnd = CreateWindowExA(WS_EX_TOOLWINDOW, "LookAwayTrayClass", "LookAway", WS_POPUP, 0, 0, 0, 0, nullptr, nullptr, hInst, nullptr);
     if (!hwnd)
         return false;
 
-    nid = {}; // Build the NOTIFYICONDATA (ANSI variant)
-    nid.cbSize = sizeof(NOTIFYICONDATAA);
-    nid.hWnd = hwnd;
-    nid.uID = TRAY_ID;
-    nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
-    nid.uCallbackMessage = WM_TRAYICON;
+    nid = {};
+    m_currentIconId = IDI_ICON1;
     nid.hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_ICON1));
     strncpy(nid.szTip, "LookAway - 20-20-20 Timer", sizeof(nid.szTip) - 1);
     nid.szTip[sizeof(nid.szTip) - 1] = '\0';
 
-    Shell_NotifyIconA(NIM_ADD, &nid);
+    addTrayIcon();
     return true;
 }
 
@@ -62,6 +80,7 @@ void TrayIcon::showNotification(const char* title, const char* message)
 
 void TrayIcon::setIcon(int iconId)
 {
+    m_currentIconId = iconId;
     nid.hIcon = LoadIcon(hInst, MAKEINTRESOURCE(iconId));
     nid.uFlags = NIF_ICON;
     Shell_NotifyIconA(NIM_MODIFY, &nid);
@@ -123,6 +142,13 @@ void TrayIcon::showContextMenu()
 
 LRESULT CALLBACK TrayIcon::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    if (s_taskbarCreatedMsg != 0 && msg == s_taskbarCreatedMsg)
+    {
+        if (s_instance)
+            s_instance->addTrayIcon();
+        return 0;
+    }
+
     if (msg == WM_TRAYICON)
     {
         UINT event = LOWORD(lParam);
